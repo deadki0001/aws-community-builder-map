@@ -204,7 +204,7 @@
         });
 
         // Fetch countries and populate dropdown
-        fetch('http://127.0.0.1:5000/countries')
+        fetch('/countries')
             .then(response => response.json())
             .then(countries => {
                 const dropdown = document.getElementById('countrySelector');
@@ -223,7 +223,7 @@
             const markers = document.querySelectorAll('.mapboxgl-marker');
             markers.forEach(marker => marker.remove());
 
-            fetch(`http://127.0.0.1:5000/builders?country=${country}`)
+            fetch(`/builders?country=${country}`)
                 .then(response => response.json())
                 .then(builders => {
                     if (builders.length === 0) {
@@ -253,7 +253,7 @@
                 return;
             }
 
-            fetch(`http://127.0.0.1:5000/search?name=${encodeURIComponent(builderName)}`)  
+            fetch(`/search?name=${encodeURIComponent(builderName)}`)  
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
