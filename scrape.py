@@ -73,39 +73,54 @@ def scrape_builders():
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
-        # Loop through the first 3 pages
-        for page_num in range(1, 2):
+        # Loop through the first 10 pages to get more data
+        for page_num in range(1, 11):  # Changed from range(1, 2) to range(1, 11)
             print(f"Scraping page {page_num}...")
             page.goto(f"{base_url}?awsm.page-cb-cards={page_num}", timeout=60000)
-            page.wait_for_selector('.lb-xbcol.m-showcase-card.aws-card-item', timeout=30000)
+            
+            try:
+                page.wait_for_selector('.lb-xbcol.m-showcase-card.aws-card-item', timeout=30000)
+            except Exception as e:
+                print(f"No more builders found on page {page_num}, stopping.")
+                break
 
             builder_cards = page.query_selector_all('.lb-xbcol.m-showcase-card.aws-card-item')
+            
+            if len(builder_cards) == 0:
+                print(f"No builders found on page {page_num}, stopping.")
+                break
+                
             for card in builder_cards:
-                name = card.query_selector('.m-headline').inner_text().strip()
-                location = card.query_selector('.m-category').inner_text().strip()
-                description = card.query_selector('.m-desc').inner_text().strip()
-
-                country = location.split(",")[-1].strip()  # Extract country from location
-
-                latitude, longitude = None, None
                 try:
-                    geo = geolocator.geocode(location, timeout=10)
-                    if geo:
-                        latitude, longitude = geo.latitude, geo.longitude
+                    name = card.query_selector('.m-headline').inner_text().strip()
+                    location = card.query_selector('.m-category').inner_text().strip()
+                    description = card.query_selector('.m-desc').inner_text().strip()
+
+                    country = location.split(",")[-1].strip()  # Extract country from location
+
+                    latitude, longitude = None, None
+                    try:
+                        geo = geolocator.geocode(location, timeout=10)
+                        if geo:
+                            latitude, longitude = geo.latitude, geo.longitude
+                    except Exception as e:
+                        print(f"Geocoding failed for {location}: {e}")
+
+                    builders.append({
+                        "name": name,
+                        "location": location,
+                        "description": description,
+                        "country": country,
+                        "latitude": latitude,
+                        "longitude": longitude
+                    })
                 except Exception as e:
-                    print(f"Geocoding failed for {location}: {e}")
+                    print(f"Error parsing builder card: {e}")
+                    continue
 
-                builders.append({
-                    "name": name,
-                    "location": location,
-                    "description": description,
-                    "country": country,
-                    "latitude": latitude,
-                    "longitude": longitude
-                })
-
-            time.sleep(2)  # Optional delay
+            time.sleep(2)  # Optional delay between pages
 
         browser.close()
 
+    print(f"Total builders scraped: {len(builders)}")
     return builders
